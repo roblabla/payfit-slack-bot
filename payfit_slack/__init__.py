@@ -46,12 +46,14 @@ def main():
         employees = [employee['id'] for employee in employeesFullInfo if employee['status']['isActive']]
 
         check_for = datetime.now()
-        if 4 <= check_for.hour <= 12:
+        if 2 <= check_for.hour <= 12:
             time.sleep(60*60)
             continue
 
         if 12 < check_for.hour:
             check_for = check_for.date() + timedelta(days=1)
+        else:
+            check_for = check_for.date()
 
         absents = []
 
