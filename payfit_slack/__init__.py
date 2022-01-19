@@ -97,7 +97,10 @@ def main():
 
 
         graphmsg += graph
-        graphmsg += "\n```"
+        graphmsg += "\n```\n\n"
+        graphmsg += "🟩: Office work under threshold\n"
+        graphmsg += "🟪: Office work over threshold\n"
+        graphmsg += "⬜: Remote work/absentee\n"
 
 
         print(f"There are {num_present} people at work.")
