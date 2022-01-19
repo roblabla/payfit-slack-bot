@@ -14,7 +14,7 @@ SLACK_WEBHOOK = os.environ['SLACK_WEBHOOK']
 ACCESS_TOKEN = os.environ['PAYFIT_ACCESS_TOKEN']
 REFRESH_TOKEN = os.environ['PAYFIT_REFRESH_TOKEN']
 
-THRESHOLD = 25
+THRESHOLD = 20
 
 def get_new_token(access_token: str, refresh_token: str):
     cookies = dict(accessToken=access_token, refreshToken=refresh_token)
