@@ -9,6 +9,9 @@ python = "^3.9"
 requests = "^2.27.1"
 slack-sdk = "^3.13.0"
 
+[tool.poetry.scripts]
+bot = "payfit_slack:main"
+
 [tool.poetry.dev-dependencies]
 
 [build-system]
