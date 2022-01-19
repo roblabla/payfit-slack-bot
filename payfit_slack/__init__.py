@@ -3,7 +3,9 @@ import time
 import requests
 from slack_sdk.webhook import WebhookClient
 import os
+import math
 #from slack_sdk.models import *
+import textwrap
 
 PAYFIT_URL = "https://api.payfit.com/"
 PAYFIT_EMPLOYEES_ENDPOINT = f"{PAYFIT_URL}hr/employees"
@@ -77,7 +79,7 @@ def main():
         # 🟪: Office work over ceil
         # ⬜: Remote work/absentees.
         graphmsg = f"{num_present}/{THRESHOLD}\n"
-        graphmsg += "```\n"
+        graphmsg += "\n"
 
         below_ceil = min(num_present, THRESHOLD)
         above_ceil = max(num_present - THRESHOLD, 0)
@@ -85,19 +87,14 @@ def main():
         graph += "🟪" * above_ceil
         graph += "⬜" * len(absents)
 
-        curchar = 0
-        for i in range(len(employees)):
-            if i % 28 == 0 and i != 0:
-                graph = graph[:curchar] + "\n" + graph[curchar:]
-                curchar += 1
-            if graph[curchar] == " ":
-                curchar += 2
-            else:
-                curchar += 1
+        max_char_per_line = min(round(math.sqrt(len(employees))), 25)
+        print(max_char_per_line)
 
+        graph = "\n".join(textwrap.wrap(graph, max_char_per_line))
+        print(graph)
 
         graphmsg += graph
-        graphmsg += "\n```\n\n"
+        graphmsg += "\n\n\n"
         graphmsg += "🟩: Office work under threshold\n"
         graphmsg += "🟪: Office work over threshold\n"
         graphmsg += "⬜: Remote work/absentee\n"
