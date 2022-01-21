@@ -57,6 +57,9 @@ def main():
         else:
             check_for = check_for.date()
 
+        if check_for.weekday() >= 5:
+            check_for = check_for + timedelta(days=7 - check_for.weekday())
+
         absents = []
 
         for absence in absences['absences']:
