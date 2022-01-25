@@ -77,11 +77,9 @@ def main():
 
         num_present = len(presents)
 
-        # Generate graph. It looks like this: each line has 28 cells.
-        # Each cell can either be a square emoji or two spaces:
-        # 🟩: Office work below ceil
-        # 🟪: Office work over ceil
-        # ⬜: Remote work/absentees.
+        # Generate a square grid (whose width/height is calculated as sqrt(num employees),
+        # so it's a pretty square.
+        # Each square represents the status of a single employee.
         graphmsg = f"{num_present}/{THRESHOLD+FORMATION}\n"
         graphmsg += "\n"
 
