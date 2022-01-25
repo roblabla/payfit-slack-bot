@@ -17,6 +17,7 @@ ACCESS_TOKEN = os.environ['PAYFIT_ACCESS_TOKEN']
 REFRESH_TOKEN = os.environ['PAYFIT_REFRESH_TOKEN']
 
 THRESHOLD = 20
+FORMATION = 10
 
 def get_new_token(access_token: str, refresh_token: str):
     cookies = dict(accessToken=access_token, refreshToken=refresh_token)
@@ -81,29 +82,31 @@ def main():
         # 🟩: Office work below ceil
         # 🟪: Office work over ceil
         # ⬜: Remote work/absentees.
-        graphmsg = f"{num_present}/{THRESHOLD}\n"
+        graphmsg = f"{num_present}/{THRESHOLD+FORMATION}\n"
         graphmsg += "\n"
 
-        below_ceil = min(num_present, THRESHOLD)
-        above_ceil = max(num_present - THRESHOLD, 0)
+        formation = min(10, num_present)
+        office_seat = num_present - formation
+        below_ceil = min(office_seat, THRESHOLD)
+        above_ceil = max(office_seat - THRESHOLD, 0)
         graph = "🟩" * below_ceil
         graph += "🟪" * above_ceil
+        graph += "🟧" * formation
         graph += "⬜" * len(absents)
 
         max_char_per_line = min(round(math.sqrt(len(employees))), 25)
-        print(max_char_per_line)
 
         graph = "\n".join(textwrap.wrap(graph, max_char_per_line))
-        print(graph)
 
         graphmsg += graph
         graphmsg += "\n\n\n"
         graphmsg += "🟩: Office work under threshold\n"
         graphmsg += "🟪: Office work over threshold\n"
+        graphmsg += "🟧: In formation\n"
         graphmsg += "⬜: Remote work/absentee\n"
 
+        print(graphmsg)
 
-        print(f"There are {num_present} people at work.")
 
         if len(presents) >= THRESHOLD:
             webhook.send(
