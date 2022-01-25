@@ -108,7 +108,7 @@ def main():
         print(graphmsg)
 
 
-        if len(presents) >= THRESHOLD:
+        if len(presents) >= THRESHOLD+FORMATION:
             webhook.send(
                 text=f"There are too many people scheduled to go to the office tomorrow (currently, {len(presents)} people are scheduled to come in).",
                 blocks=[
