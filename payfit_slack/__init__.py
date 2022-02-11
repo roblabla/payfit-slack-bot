@@ -32,7 +32,7 @@ else:
     PAYFIT_PASSWORD = None
 
 THRESHOLD = 20
-FORMATION = 10
+FORMATION = 0
 
 def login(username: str, password: str):
     pw_hashed = hmac.digest(password.encode('utf-8'), b"", hashlib.sha256).hex()
@@ -158,7 +158,7 @@ def main():
         graphmsg = f"{num_present}/{THRESHOLD+FORMATION}\n"
         graphmsg += "\n"
 
-        formation = min(10, num_present)
+        formation = min(FORMATION, num_present)
         office_seat = num_present - formation
         below_ceil = min(office_seat, THRESHOLD)
         above_ceil = max(office_seat - THRESHOLD, 0)
