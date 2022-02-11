@@ -6,42 +6,117 @@ import os
 import math
 #from slack_sdk.models import *
 import textwrap
+import hmac
+import hashlib
 
 PAYFIT_URL = "https://api.payfit.com/"
 PAYFIT_EMPLOYEES_ENDPOINT = f"{PAYFIT_URL}hr/employees"
 PAYFIT_ABSENCES_ENDPOINT = f"{PAYFIT_URL}hr/employee-request/absences"
+PAYFIT_ACCOUNTS_ENDPOINT = f"{PAYFIT_URL}auth/accounts"
+PAYFIT_LOGIN_ENDPOINT = f"{PAYFIT_URL}auth/signin"
 PAYFIT_REFRESH_ENDPOINT = f"{PAYFIT_URL}auth/accessToken"
+PAYFIT_UPDATE_CURRENT_ACCOUNT_ENDPOINT = f"{PAYFIT_URL}auth/updateCurrentAccount"
 
 SLACK_WEBHOOK = os.environ['SLACK_WEBHOOK']
-ACCESS_TOKEN = os.environ['PAYFIT_ACCESS_TOKEN']
-REFRESH_TOKEN = os.environ['PAYFIT_REFRESH_TOKEN']
+if 'PAYFIT_ACCESS_TOKEN' in os.environ:
+    PAYFIT_ACCESS_TOKEN = os.environ['PAYFIT_ACCESS_TOKEN']
+    PAYFIT_REFRESH_TOKEN = os.environ['PAYFIT_REFRESH_TOKEN']
+else:
+    PAYFIT_ACCESS_TOKEN = None
+    PAYFIT_REFRESH_TOKEN = None
+if 'PAYFIT_EMAIL' in os.environ:
+    PAYFIT_EMAIL = os.environ['PAYFIT_EMAIL']
+    PAYFIT_PASSWORD = os.environ['PAYFIT_PASSWORD']
+else:
+    PAYFIT_EMAIL = None
+    PAYFIT_PASSWORD = None
 
 THRESHOLD = 20
 FORMATION = 10
 
+def login(username: str, password: str):
+    pw_hashed = hmac.digest(password.encode('utf-8'), b"", hashlib.sha256).hex()
+    data = dict(email=username, password=pw_hashed,remember=True)
+    resp = requests.post(PAYFIT_LOGIN_ENDPOINT, json=data)
+    if not resp:
+        print(resp.json())
+        resp.raise_for_status()
+    return resp.cookies['accessToken'], resp.cookies['refreshToken']
+
+def get_accounts(access_token: str):
+    cookies = dict(accessToken=access_token)
+    resp = requests.get(PAYFIT_ACCOUNTS_ENDPOINT, cookies=cookies)
+    if not resp:
+        print(resp.json())
+        resp.raise_for_status()
+    return resp.json()
+
+def update_current_account(access_token: str, refresh_token: str, companyId: str, employeeId: str):
+    cookies = dict(accessToken=access_token, refreshToken=refresh_token)
+    data = dict(companyId=companyId, employeeId=employeeId)
+    resp = requests.post(PAYFIT_UPDATE_CURRENT_ACCOUNT_ENDPOINT, json=data, cookies=cookies)
+    if not resp:
+        print(resp.json())
+        resp.raise_for_status()
+    return resp.cookies['accessToken'], resp.cookies['refreshToken']
+
 def get_new_token(access_token: str, refresh_token: str):
     cookies = dict(accessToken=access_token, refreshToken=refresh_token)
-    return requests.post(PAYFIT_REFRESH_ENDPOINT, cookies=cookies).json()
+    resp = requests.post(PAYFIT_REFRESH_ENDPOINT, cookies=cookies)
+    if not resp:
+        print(resp.json())
+        resp.raise_for_status()
+    return resp.json()
+
 
 def get_absences(access_token: str):
     cookies = dict(accessToken=access_token)
-    return requests.post(PAYFIT_ABSENCES_ENDPOINT, cookies=cookies).json()
+    resp = requests.post(PAYFIT_ABSENCES_ENDPOINT, cookies=cookies)
+    if not resp:
+        print(resp.json())
+        resp.raise_for_status()
+    return resp.json()
 
 def get_employees(access_token: str):
     cookies = dict(accessToken=access_token)
-    return requests.post(PAYFIT_EMPLOYEES_ENDPOINT, cookies=cookies).json()
+    resp = requests.post(PAYFIT_EMPLOYEES_ENDPOINT, cookies=cookies)
+    if not resp:
+        print(resp.json())
+        resp.raise_for_status()
+    return resp.json()
 
 def main():
-    access_token = ACCESS_TOKEN
-    refresh_token = REFRESH_TOKEN
+    if PAYFIT_EMAIL is not None and PAYFIT_PASSWORD is not None:
+        access_token, refresh_token = login(PAYFIT_EMAIL, PAYFIT_PASSWORD)
+        print(f"Login successful!")
+
+        # TODO: Account selector.
+        acts = get_accounts(access_token)
+        account = acts[0]['account']
+        access_token, refresh_token = update_current_account(access_token, refresh_token, account['companyId'], account['employeeId'])
+
+    elif PAYFIT_ACCESS_TOKEN is not None and PAYFIT_REFRESH_TOKEN is not None:
+        access_token = PAYFIT_ACCESS_TOKEN
+        refresh_token = PAYFIT_REFRESH_TOKEN
+    else:
+        raise Exception("No valid login method found.")
+
     webhook = WebhookClient(SLACK_WEBHOOK)
 
     while True:
-        data = get_new_token(access_token, refresh_token)
-        access_token = data['accessToken']
-        refresh_token = data['refreshToken']
-
-        # TODO: save in sqlite or something.
+        try:
+            print(f"Refreshing token")
+            data = get_new_token(access_token, refresh_token)
+            access_token = data['accessToken']
+            refresh_token = data['refreshToken']
+        except requests.HTTPError:
+            # if we failed to get new tokens, try to login.
+            if PAYFIT_EMAIL is not None and PAYFIT_PASSWORD is not None:
+                print("Failed to get new tokens. Reconnecting.")
+                access_token, refresh_token = login(PAYFIT_EMAIL, PAYFIT_PASSWORD)
+                access_token, refresh_token = update_current_account(access_token, refresh_token, account['companyId'], account['employeeId'])
+            else:
+                raise
 
         absences = get_absences(access_token)
         employeesFullInfo = get_employees(access_token)
